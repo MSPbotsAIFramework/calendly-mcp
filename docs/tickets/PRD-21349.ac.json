@@ -1,0 +1,152 @@
+[
+  {
+    "id": "TC-CAL-001",
+    "ac": "AC1",
+    "text": "Given a valid Calendly Personal Access Token, When calendly_list_event_types is called with no filters, Then it returns a non-empty collection of event types, each with uri, name, duration, scheduling_url",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_list_event_types_returns_collection"]
+  },
+  {
+    "id": "TC-CAL-002",
+    "ac": "AC1",
+    "text": "Given active=true, When calendly_list_event_types is called, Then every returned event type has active == true",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_list_event_types_active_filter"]
+  },
+  {
+    "id": "TC-CAL-003",
+    "ac": "AC2",
+    "text": "Given a 31-day start_time/end_time window, When calendly_get_event_type_available_times is called, Then it returns a slot list with no error",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_available_times_31_day_window_ok"]
+  },
+  {
+    "id": "TC-CAL-004",
+    "ac": "AC2",
+    "text": "Given a 32-day start_time/end_time window, When calendly_get_event_type_available_times is called, Then it returns {error: invalid_argument} and does not call the Calendly API",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_available_times_32_day_window_rejected"]
+  },
+  {
+    "id": "TC-CAL-005",
+    "ac": "AC3",
+    "text": "Given valid credentials, When calendly_get_current_user is called, Then it returns uri, name, email, scheduling_url, current_organization",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_get_current_user_shape"]
+  },
+  {
+    "id": "TC-CAL-006",
+    "ac": "AC4",
+    "text": "Given no filters, When calendly_list_scheduled_events is called, Then it returns the user's events newest first",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_list_scheduled_events_default_order"]
+  },
+  {
+    "id": "TC-CAL-007",
+    "ac": "AC4",
+    "text": "Given status=canceled, When calendly_list_scheduled_events is called, Then every returned event has status == canceled",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_list_scheduled_events_status_filter"]
+  },
+  {
+    "id": "TC-CAL-008",
+    "ac": "AC5",
+    "text": "Given a known event uuid, When calendly_get_scheduled_event is called, Then it returns the full event detail (start/end time, location, status, event type, invitee count)",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_get_scheduled_event_detail"]
+  },
+  {
+    "id": "TC-CAL-009",
+    "ac": "AC5",
+    "text": "Given an event uuid that does not belong to the authenticated account, When calendly_get_scheduled_event is called, Then it returns the same not-found/forbidden result Calendly's own API returns for that token (no MSPbots-side cross-tenant mixing)",
+    "type": "manual",
+    "steps": [
+      "Connect two different Calendly accounts/tokens (account A, account B)",
+      "Get an event uuid belonging to account B",
+      "Call calendly_get_scheduled_event with account A's token and account B's event uuid"
+    ],
+    "expect": "The tool returns the same not-found/forbidden error Calendly's API itself returns for that token/uuid pair; the service does not return account B's data to account A's token",
+    "result": "untested",
+    "notes": "needs a real vendor account (two Calendly tenants) -- not available to this pipeline; flagged for whoever first connects a live tenant"
+  },
+  {
+    "id": "TC-CAL-010",
+    "ac": "AC6",
+    "text": "Given a known event uuid, When calendly_list_event_invitees is called, Then each invitee has name, email, status",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_list_event_invitees_shape"]
+  },
+  {
+    "id": "TC-CAL-011",
+    "ac": "AC7",
+    "text": "Given an event uuid and a reason, When calendly_cancel_scheduled_event is called, Then the event is canceled and a following calendly_get_scheduled_event call shows status: canceled",
+    "type": "manual",
+    "steps": [
+      "Create or identify a live, not-yet-canceled scheduled event on a real Calendly test account",
+      "Call calendly_cancel_scheduled_event with that event's uuid and reason='test cancellation'",
+      "Call calendly_get_scheduled_event with the same uuid"
+    ],
+    "expect": "The second call returns status: canceled",
+    "result": "untested",
+    "notes": "needs a real vendor account -- write action, cannot be safely run against a mocked or production-shared account; not executed against PROD per the vendor-mcp testcase guidance"
+  },
+  {
+    "id": "TC-CAL-012",
+    "ac": "AC8",
+    "text": "Given a 7-day start_time/end_time window, When calendly_list_user_busy_times is called, Then it returns busy blocks with no error",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_busy_times_7_day_window_ok"]
+  },
+  {
+    "id": "TC-CAL-013",
+    "ac": "AC8",
+    "text": "Given an 8-day start_time/end_time window, When calendly_list_user_busy_times is called, Then it returns {error: invalid_argument} and does not call the Calendly API",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_busy_times_8_day_window_rejected"]
+  },
+  {
+    "id": "TC-CAL-014",
+    "ac": "AC9",
+    "text": "Given an event type uri, When calendly_create_scheduling_link is called, Then it returns a booking_url that resolves to a Calendly booking page for that event type",
+    "type": "manual",
+    "steps": [
+      "Identify an event type uri on a real Calendly test account",
+      "Call calendly_create_scheduling_link with that uri",
+      "Open the returned booking_url in a browser"
+    ],
+    "expect": "The booking_url resolves (HTTP 200) and shows a Calendly booking page for the given event type",
+    "result": "untested",
+    "notes": "needs a real vendor account -- not available to this pipeline"
+  },
+  {
+    "id": "TC-CAL-015",
+    "ac": "AC10",
+    "text": "Given the X-Calendly-Api-Key header is absent, When any tool is called, Then it returns {error: unauthorized} naming the missing header, and no outbound call to api.calendly.com is made",
+    "type": "auto",
+    "tests": ["tests/test_middleware.py::test_missing_header_returns_401_no_upstream_call"]
+  },
+  {
+    "id": "TC-CAL-016",
+    "ac": "AC11",
+    "text": "Given Calendly returns 429, When a tool is called, Then it returns {error: rate_limited, retryable: true}; given Calendly returns 500, Then it returns {error: upstream_error, retryable: true}",
+    "type": "auto",
+    "tests": [
+      "tests/test_tools.py::test_error_mapping_429_rate_limited",
+      "tests/test_tools.py::test_error_mapping_500_upstream_error"
+    ]
+  },
+  {
+    "id": "TC-CAL-017",
+    "ac": "AC12",
+    "text": "Given two interleaved requests carrying two different tokens, When both call the same tool concurrently, Then each request's outbound call uses only its own token, with no cross-request bleed",
+    "type": "auto",
+    "tests": ["tests/test_middleware.py::test_concurrent_requests_do_not_cross_tokens"]
+  },
+  {
+    "id": "TC-CAL-018",
+    "ac": "AC13",
+    "text": "Given no credential header, When GET /health is called, Then it returns 200 {\"status\": \"ok\"} regardless of Calendly API reachability",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_health_endpoint_ok_without_credentials"]
+  }
+]
